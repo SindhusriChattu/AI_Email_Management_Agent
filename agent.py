@@ -181,49 +181,33 @@ def decide_action(state: EmailState):
 
 def extract_tasks(state: EmailState):
 
-    email = state["email"]
+    email = state["email"].lower()
 
     tasks = []
 
-    # Training/session tasks
-    if any(word in email.lower() for word in [
-        "register",
-        "mandatory",
-        "attend"
-    ]):
+    # Registration
+    if "register" in email:
+        tasks.append("Register for the session")
 
-        if "register" in email.lower():
-            tasks.append("Register for the session")
+    # Attendance
+    if "attendance is mandatory" in email or "attend both sessions" in email:
+        tasks.append("Attend both sessions")
 
-        if "attend" in email.lower():
-            tasks.append("Attend the scheduled sessions")
+    # Preparation
+    if "prepare" in email:
+        tasks.append("Prepare the required topics")
 
-        if "prepare" in email.lower():
-            tasks.append("Prepare the required topics")
+    # Confirmation
+    if "please confirm" in email:
+        tasks.append("Confirm attendance")
 
-    # General task extraction
-    sentences = re.split(r"[.!?]", email)
+    # Submission
+    if "submit" in email:
+        tasks.append("Submit the required information")
 
-    task_words = [
-        "please",
-        "confirm",
-        "submit",
-        "send",
-        "complete",
-        "review",
-        "respond"
-    ]
-
-    for sentence in sentences:
-
-        sentence_lower = sentence.lower().strip()
-
-        if any(word in sentence_lower for word in task_words):
-
-            cleaned = sentence.strip()
-
-            if cleaned and cleaned not in tasks:
-                tasks.append(cleaned)
+    # Review
+    if "review" in email:
+        tasks.append("Review the provided information")
 
     if tasks:
 
@@ -238,8 +222,6 @@ def extract_tasks(state: EmailState):
     return {
         "tasks": task_text
     }
-
-
 # =========================================================
 # AGENT 5: DEADLINE DETECTION
 # =========================================================
