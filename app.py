@@ -3,67 +3,141 @@ import streamlit as st
 from agent import process_email
 
 
+# =========================================================
+# PAGE CONFIGURATION
+# =========================================================
+
 st.set_page_config(
     page_title="AI Email Management Agent",
-    page_icon="📧"
+    page_icon="📧",
+    layout="centered"
 )
 
+
+# =========================================================
+# TITLE
+# =========================================================
 
 st.title("📧 AI Email Management Agent")
 
 st.write(
     "Analyze an email, identify its priority and required action, "
-    "extract tasks and deadlines, and generate a reply."
+    "extract tasks and deadlines, and generate a suggested reply."
 )
 
+
+# =========================================================
+# EMAIL INPUT
+# =========================================================
 
 email = st.text_area(
     "Paste Email",
-    height=250,
-    placeholder="Paste an email here..."
+    height=300,
+    placeholder="Paste your email here..."
 )
 
+
+# =========================================================
+# ANALYZE BUTTON
+# =========================================================
 
 if st.button("Analyze Email"):
 
     if not email.strip():
 
-        st.warning("Please paste an email.")
+        st.warning(
+            "Please paste an email before analyzing."
+        )
 
     else:
 
-        with st.spinner("Agent is analyzing the email..."):
+        with st.spinner(
+            "Agent is analyzing the email..."
+        ):
 
-            result = process_email(email)
+            try:
 
-        st.subheader("📊 Email Analysis")
+                result = process_email(email)
 
-        col1, col2 = st.columns(2)
+                # -----------------------------
+                # Email Analysis
+                # -----------------------------
 
-        with col1:
-            st.metric(
-                "Category",
-                result["category"]
-            )
+                st.subheader("📊 Email Analysis")
 
-        with col2:
-            st.metric(
-                "Priority",
-                result["priority"]
-            )
+                col1, col2 = st.columns(2)
 
-        st.subheader("🎯 Required Action")
+                with col1:
 
-        st.write(result["action"])
+                    st.write("**Category**")
 
-        st.subheader("✅ Tasks")
+                    st.write(
+                        result["category"]
+                    )
 
-        st.write(result["tasks"])
+                with col2:
 
-        st.subheader("📅 Deadline")
+                    st.write("**Priority**")
 
-        st.write(result["deadline"])
+                    st.write(
+                        result["priority"]
+                    )
 
-        st.subheader("✉️ Suggested Reply")
+                # -----------------------------
+                # Required Action
+                # -----------------------------
 
-        st.info(result["reply"])
+                st.subheader(
+                    "🎯 Required Action"
+                )
+
+                st.write(
+                    result["action"]
+                )
+
+                # -----------------------------
+                # Tasks
+                # -----------------------------
+
+                st.subheader(
+                    "✅ Tasks"
+                )
+
+                st.markdown(
+                    result["tasks"]
+                )
+
+                # -----------------------------
+                # Deadline
+                # -----------------------------
+
+                st.subheader(
+                    "📅 Deadline"
+                )
+
+                st.write(
+                    result["deadline"]
+                )
+
+                # -----------------------------
+                # Suggested Reply
+                # -----------------------------
+
+                st.subheader(
+                    "✉️ Suggested Reply"
+                )
+
+                st.info(
+                    result["reply"]
+                )
+
+            except Exception as e:
+
+                st.error(
+                    "Something went wrong while "
+                    "analyzing the email."
+                )
+
+                st.code(
+                    str(e)
+                )
