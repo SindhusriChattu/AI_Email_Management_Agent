@@ -4,6 +4,10 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 
 
+# =========================================================
+# EMAIL STATE
+# =========================================================
+
 class EmailState(TypedDict):
     email: str
     category: str
@@ -14,32 +18,47 @@ class EmailState(TypedDict):
     reply: str
 
 
-# -----------------------------
-# Agent 1: Email Understanding
-# -----------------------------
+# =========================================================
+# AGENT 1: UNDERSTAND EMAIL
+# =========================================================
 
 def understand_email(state: EmailState):
 
     email = state["email"].lower()
 
+    # Training / sessions
     if any(word in email for word in [
+        "training",
+        "skills session",
+        "practical skills session",
+        "live interactive",
+        "workshop",
+        "mandatory to attend",
+        "session details"
+    ]):
+        category = "Training / Skills Session"
+
+    # Career / recruitment
+    elif any(word in email for word in [
         "interview",
         "job",
         "offer",
         "recruitment",
-        "hiring"
+        "hiring",
+        "selection process"
     ]):
         category = "Career / Recruitment"
 
+    # Meetings / work
     elif any(word in email for word in [
         "meeting",
         "project",
-        "deadline",
         "client",
         "work"
     ]):
         category = "Work"
 
+    # Finance
     elif any(word in email for word in [
         "payment",
         "invoice",
@@ -48,10 +67,10 @@ def understand_email(state: EmailState):
     ]):
         category = "Finance"
 
+    # Promotions
     elif any(word in email for word in [
         "sale",
         "discount",
-        "offer",
         "promotion"
     ]):
         category = "Promotion"
@@ -64,9 +83,9 @@ def understand_email(state: EmailState):
     }
 
 
-# -----------------------------
-# Agent 2: Priority Detection
-# -----------------------------
+# =========================================================
+# AGENT 2: PRIORITY DETECTION
+# =========================================================
 
 def detect_priority(state: EmailState):
 
@@ -79,7 +98,10 @@ def detect_priority(state: EmailState):
         "interview",
         "deadline",
         "important",
-        "action required"
+        "action required",
+        "mandatory",
+        "without fail",
+        "selection process"
     ]
 
     medium_words = [
@@ -87,7 +109,8 @@ def detect_priority(state: EmailState):
         "meeting",
         "please confirm",
         "response required",
-        "follow up"
+        "follow up",
+        "register"
     ]
 
     if any(word in email for word in high_words):
@@ -104,15 +127,28 @@ def detect_priority(state: EmailState):
     }
 
 
-# -----------------------------
-# Agent 3: Action Decision
-# -----------------------------
+# =========================================================
+# AGENT 3: ACTION DECISION
+# =========================================================
 
 def decide_action(state: EmailState):
 
     email = state["email"].lower()
 
-    reply_words = [
+    # Registration / attendance
+    if any(word in email for word in [
+        "register in advance",
+        "please register",
+        "register",
+        "attendance is mandatory",
+        "attend both sessions",
+        "please make sure to register",
+        "attend without fail"
+    ]):
+        action = "Register & Attend"
+
+    # Reply required
+    elif any(word in email for word in [
         "please confirm",
         "please reply",
         "let me know",
@@ -120,18 +156,15 @@ def decide_action(state: EmailState):
         "could you",
         "please respond",
         "confirmation required"
-    ]
+    ]):
+        action = "Reply Required"
 
-    followup_words = [
+    # Follow-up
+    elif any(word in email for word in [
         "follow up",
         "follow-up",
         "reminder"
-    ]
-
-    if any(word in email for word in reply_words):
-        action = "Reply Required"
-
-    elif any(word in email for word in followup_words):
+    ]):
         action = "Follow-up Required"
 
     else:
@@ -142,13 +175,34 @@ def decide_action(state: EmailState):
     }
 
 
-# -----------------------------
-# Agent 4: Task Extraction
-# -----------------------------
+# =========================================================
+# AGENT 4: TASK EXTRACTION
+# =========================================================
 
 def extract_tasks(state: EmailState):
 
     email = state["email"]
+
+    tasks = []
+
+    # Training/session tasks
+    if any(word in email.lower() for word in [
+        "register",
+        "mandatory",
+        "attend"
+    ]):
+
+        if "register" in email.lower():
+            tasks.append("Register for the session")
+
+        if "attend" in email.lower():
+            tasks.append("Attend the scheduled sessions")
+
+        if "prepare" in email.lower():
+            tasks.append("Prepare the required topics")
+
+    # General task extraction
+    sentences = re.split(r"[.!?]", email)
 
     task_words = [
         "please",
@@ -156,31 +210,29 @@ def extract_tasks(state: EmailState):
         "submit",
         "send",
         "complete",
-        "attend",
         "review",
         "respond"
     ]
 
-    sentences = re.split(r"[.!?]", email)
-
-    tasks = []
-
     for sentence in sentences:
 
-        sentence_lower = sentence.lower()
+        sentence_lower = sentence.lower().strip()
 
         if any(word in sentence_lower for word in task_words):
 
             cleaned = sentence.strip()
 
-            if cleaned:
+            if cleaned and cleaned not in tasks:
                 tasks.append(cleaned)
 
     if tasks:
+
         task_text = "\n".join(
-            f"- {task}" for task in tasks
+            f"• {task}" for task in tasks
         )
+
     else:
+
         task_text = "No specific task detected."
 
     return {
@@ -188,69 +240,122 @@ def extract_tasks(state: EmailState):
     }
 
 
-# -----------------------------
-# Agent 5: Deadline Detection
-# -----------------------------
+# =========================================================
+# AGENT 5: DEADLINE DETECTION
+# =========================================================
 
 def detect_deadline(state: EmailState):
 
     email = state["email"].lower()
 
-    if "today" in email:
+    # Specific date range
+    if "23rd & 24th september 2026" in email:
+
+        deadline = "23rd & 24th September 2026"
+
+    elif "23rd and 24th september 2026" in email:
+
+        deadline = "23rd & 24th September 2026"
+
+    elif "today" in email:
+
         deadline = "Today"
 
     elif "tomorrow" in email:
+
         deadline = "Tomorrow"
 
     elif "next week" in email:
+
         deadline = "Next week"
 
     else:
 
-        date_pattern = r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b"
+        date_pattern = (
+            r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b"
+        )
 
-        match = re.search(date_pattern, email)
+        match = re.search(
+            date_pattern,
+            email
+        )
 
         if match:
+
             deadline = match.group()
 
         else:
-            deadline = "No deadline detected."
+
+            # Detect month + year/date formats
+            month_pattern = (
+                r"\b\d{1,2}(?:st|nd|rd|th)?\s+"
+                r"(?:january|february|march|april|may|june|"
+                r"july|august|september|october|november|december)"
+                r"(?:\s+\d{4})?"
+            )
+
+            match = re.search(
+                month_pattern,
+                email
+            )
+
+            if match:
+                deadline = match.group()
+            else:
+                deadline = "No deadline detected."
 
     return {
         "deadline": deadline
     }
 
 
-# -----------------------------
-# Agent 6: Reply Generator
-# -----------------------------
+# =========================================================
+# AGENT 6: REPLY GENERATOR
+# =========================================================
 
 def generate_reply(state: EmailState):
 
-    if state["action"] == "No Action Required":
+    action = state["action"]
+    category = state["category"]
+
+    # No reply needed
+    if action == "No Action Required":
 
         reply = "No reply required."
 
-    elif state["category"] == "Career / Recruitment":
+    # Registration/attendance emails
+    elif action == "Register & Attend":
+
+        reply = (
+            "Thank you for the information. "
+            "I will register for the session and attend "
+            "the scheduled sessions."
+        )
+
+    # Career emails
+    elif category == "Career / Recruitment":
 
         reply = (
             "Thank you for the information. "
             "I acknowledge the email and confirm my availability."
         )
 
-    elif state["category"] == "Work":
+    # Work emails
+    elif category == "Work":
 
         reply = (
             "Thank you for the update. "
-            "I acknowledge the request and will take the necessary action."
+            "I acknowledge the request and will take "
+            "the necessary action."
         )
 
+    # General reply
     else:
 
         reply = (
             "Thank you for your email. "
-            "I have received the information and will get back to you shortly."
+            "I have received the information and "
+            "will take the necessary action."
         )
 
     return {
@@ -258,9 +363,9 @@ def generate_reply(state: EmailState):
     }
 
 
-# -----------------------------
-# LangGraph Workflow
-# -----------------------------
+# =========================================================
+# LANGGRAPH WORKFLOW
+# =========================================================
 
 workflow = StateGraph(EmailState)
 
@@ -294,6 +399,8 @@ workflow.add_node(
     generate_reply
 )
 
+
+# Workflow sequence
 
 workflow.add_edge(
     START,
@@ -331,18 +438,31 @@ workflow.add_edge(
 )
 
 
+# Compile agent
+
 email_agent = workflow.compile()
 
+
+# =========================================================
+# MAIN FUNCTION
+# =========================================================
 
 def process_email(email):
 
     result = email_agent.invoke({
+
         "email": email,
+
         "category": "",
+
         "priority": "",
+
         "action": "",
+
         "tasks": "",
+
         "deadline": "",
+
         "reply": ""
     })
 
